@@ -12,6 +12,7 @@ import {
   isSessionHydrated,
   subscribeToSession,
 } from './session';
+import { clearEscrowCache } from '../services/cache/escrowCache';
 
 type RedirectTarget = {
   pathname: string;
@@ -74,6 +75,7 @@ export function exitGuestMode(): void {
 export async function signOut(): Promise<void> {
   guestMode = false;
   await clearSession();
+  await clearEscrowCache();
   notify();
 }
 
