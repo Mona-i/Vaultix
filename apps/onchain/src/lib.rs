@@ -23,10 +23,7 @@ impl VaultixEscrow {
         // Emit ContractUpgraded event
         publish_event(
             &env,
-            (
-                Symbol::new(&env, "Vaultix"),
-                Symbol::new(&env, "ContractUpgraded"),
-            ),
+            event_topic(&env, "ContractUpgraded"),
             hash_bytes.clone(),
         );
 
@@ -949,12 +946,8 @@ impl VaultixEscrow {
         // Emit event
         publish_event(
             &env,
-            (
-                Symbol::new(&env, "Vaultix"),
-                Symbol::new(&env, "MultisigConfigured"),
-                escrow_id,
-            ),
-            (threshold_amount, required_signatures),
+            event_topic(&env, "MultisigConfigured"),
+            (escrow_id, threshold_amount, required_signatures),
         );
 
         Ok(())
@@ -1279,12 +1272,8 @@ impl VaultixEscrow {
         // Emit event
         publish_event(
             &env,
-            (
-                Symbol::new(&env, "Vaultix"),
-                Symbol::new(&env, "SignatureCollected"),
-                escrow_id,
-            ),
-            signer,
+            event_topic(&env, "SignatureCollected"),
+            (escrow_id, signer),
         );
 
         Ok(())

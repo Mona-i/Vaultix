@@ -90,3 +90,21 @@ The `VaultixEscrow` contract follows a semver-style compatibility policy for pub
 - `MAJOR` — Any breaking change to existing public entrypoint signatures, existing event payloads/types, or stored state layout for active on-chain entries.
 
 Breaking changes require an on-chain upgrade plan, explicit migration or version marker support, and off-chain client updates.
+
+## Event Schema Changes
+
+### `ContractUpgraded`, `MultisigConfigured`, `SignatureCollected` now use the versioned topic (Issue #569)
+
+These three events previously bypassed the shared `event_topic()` helper:
+`ContractUpgraded` published a two-part topic missing the schema-version
+segment, and `MultisigConfigured`/`SignatureCollected` put `escrow_id` in the
+topic's third slot instead of the schema version. All three now publish via
+`event_topic()`, so every lifecycle event uses the identical canonical
+`(Vaultix, v1, EventName)` three-topic tuple. `escrow_id` moved into the data
+payload for the latter two: `MultisigConfigured` data is now `(escrow_id,
+threshold_amount, required_signatures)`, and `SignatureCollected` data is now
+`(escrow_id, signer)`.
+
+**This is a breaking event-schema change for these three events only.**
+Off-chain indexers filtering on the old topic shapes for these three events
+must be updated in step with this contract upgrade.

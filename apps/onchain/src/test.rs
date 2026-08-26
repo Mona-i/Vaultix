@@ -3442,6 +3442,7 @@ fn test_configure_multisig_threshold() {
 
     // Configure multisig: threshold of 3000 and require 2 signatures
     client.configure_multisig(&escrow_id, &3000, &2);
+    assert_canonical_event_topics(&env, &all_events(&env), &contract_id, "MultisigConfigured");
 
     let escrow = client.get_escrow(&escrow_id);
     assert_eq!(escrow.threshold_amount, 3000);
@@ -3492,6 +3493,7 @@ fn test_collect_signature() {
 
     // Collect first signature
     client.collect_signature(&escrow_id, &depositor);
+    assert_canonical_event_topics(&env, &all_events(&env), &contract_id, "SignatureCollected");
 
     let escrow = client.get_escrow(&escrow_id);
     assert_eq!(escrow.collected_signatures.len(), 1);
@@ -4608,6 +4610,37 @@ fn test_event_topics_are_backwards_compatible() {
 
     client.complete_escrow(&escrow_id);
     assert_canonical_event_topics(&env, &all_events(&env), &contract_id, "EscrowCompleted");
+}
+
+/// Covers `ContractUpgraded`, the third event fixed by issue #569.
+/// Calls `VaultixEscrow::upgrade` directly via `env.as_contract(...)` and
+/// catches the resulting panic from the dummy (non-existent) Wasm hash, since
+/// only the topic on the already-published event needs verifying here.
+#[test]
+fn test_contract_upgraded_uses_canonical_topic() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let contract_id = env.register(VaultixEscrow, ());
+    let client = VaultixEscrowClient::new(&env, &contract_id);
+
+    let admin = Address::generate(&env);
+    let operator = Address::generate(&env);
+    let arbitrator = Address::generate(&env);
+    client.init(&admin, &operator, &arbitrator);
+
+    let new_wasm_hash = [7u8; 32];
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        env.as_contract(&contract_id, || {
+            let _ = VaultixEscrow::upgrade(env.clone(), new_wasm_hash);
+        });
+    }));
+    assert!(
+        result.is_err(),
+        "expected the dummy-wasm deploy step to panic"
+    );
+
+    assert_canonical_event_topics(&env, &all_events(&env), &contract_id, "ContractUpgraded");
 }
 
 /// Asserts that every event emitted by `contract_id` in `events` uses the
