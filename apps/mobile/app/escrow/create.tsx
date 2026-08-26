@@ -9,6 +9,8 @@ import { useRouter } from 'expo-router';
 import { escrowApi } from '../../services/api';
 import { toFriendlyError } from '../../utils/errors';
 import { requireAuth } from '../../services/auth';
+import * as StellarSdk from '@stellar/stellar-sdk';
+import { getLocalWalletAddress } from '../../services/wallet';
 
 const MAX_MILESTONES = 10;
 const MIN_MILESTONES = 1;
@@ -100,12 +102,39 @@ export default function CreateEscrowScreen() {
   };
 
   // --- Validation per step ---
-  const validateStep1 = (): boolean => {
+  const validateStep1 = async (): Promise<boolean> => {
     const e: Partial<Record<string, string>> = {};
     if (!form.title.trim()) e.title = 'Title is required';
-    if (!form.counterpartyAddress.trim()) e.counterpartyAddress = 'Recipient address is required';
-    if (!form.totalAmount || isNaN(Number(form.totalAmount)) || Number(form.totalAmount) <= 0)
+
+    // Stellar address validation
+    const addr = form.counterpartyAddress.trim();
+    if (!addr) {
+      e.counterpartyAddress = 'Recipient address is required';
+    } else if (!StellarSdk.StrKey.isValidEd25519PublicKey(addr)) {
+      e.counterpartyAddress = 'Invalid Stellar address format';
+    } else {
+      // Self-dealing check: compare against the connected wallet
+      const ownAddress = await getLocalWalletAddress();
+      if (ownAddress && addr === ownAddress) {
+        e.counterpartyAddress = 'You cannot escrow with yourself';
+      }
+    }
+
+    // Amount validation: must be a positive number representable in stroops
+    // (7 decimal places max — Stellar uses integer i64 stroops)
+    const amountStr = form.totalAmount;
+    if (!amountStr || isNaN(Number(amountStr)) || Number(amountStr) <= 0) {
       e.totalAmount = 'Enter a valid amount greater than 0';
+    } else {
+      const amount = Number(amountStr);
+      const stroops = Math.round(amount * 10_000_000);
+      if (stroops > Number.MAX_SAFE_INTEGER) {
+        e.totalAmount = 'Amount is too large';
+      } else if (amount !== stroops / 10_000_000) {
+        e.totalAmount = 'Amount cannot have more than 7 decimal places';
+      }
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -144,8 +173,15 @@ export default function CreateEscrowScreen() {
     return Object.keys(e).length === 0;
   };
 
-  const handleNext = () => {
-    const valid = step === 1 ? validateStep1() : step === 2 ? validateStep2() : validateStep3();
+  const handleNext = async () => {
+    let valid: boolean;
+    if (step === 1) {
+      valid = await validateStep1();
+    } else if (step === 2) {
+      valid = validateStep2();
+    } else {
+      valid = validateStep3();
+    }
     if (valid) setStep((s) => s + 1);
   };
 
