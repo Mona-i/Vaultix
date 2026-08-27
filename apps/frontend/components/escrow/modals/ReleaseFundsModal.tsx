@@ -135,10 +135,13 @@ export const ReleaseFundsModal: React.FC<ReleaseFundsModalProps> = ({
   }, [escrow.id, onClose, router, step]);
 
   const signingLabel = {
+    idle: "",
     building: "Building Transaction",
     waiting: "Waiting for Wallet",
     submitting: "Submitting",
     confirming: "Confirming",
+    complete: "Complete",
+    timeout: "Timed Out",
   }[signingPhase];
 
   const handlePrimaryAction = async () => {
