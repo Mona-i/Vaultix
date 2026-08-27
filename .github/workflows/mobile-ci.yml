@@ -2,53 +2,48 @@ name: Mobile CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
     paths:
-      - "apps/mobile/**"
-      - ".github/workflows/mobile-ci.yml"
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile-ci.yml'
   pull_request:
-    branches: [main, develop]
+    branches: [ main, develop ]
     paths:
-      - "apps/mobile/**"
-      - ".github/workflows/mobile-ci.yml"
+      - 'apps/mobile/**'
+      - '.github/workflows/mobile-ci.yml'
 
 jobs:
-  type-check:
-    name: Type Check
+  build:
+    name: Lint, Type-check, and Test
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: apps/mobile
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-      - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-      - name: Type check
-        run: pnpm type-check
-        continue-on-error: true
 
-  test:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/mobile
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 9
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: apps/mobile/pnpm-lock.yaml
+
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
-      - name: Run tests
-        run: pnpm test -- --passWithNoTests
-        continue-on-error: true
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Type-check
+        run: pnpm run type-check
+
+      - name: Test
+        run: pnpm run test
