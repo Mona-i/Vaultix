@@ -1,7 +1,7 @@
 /**
  * Route-guard + access-mode helpers.
  *
- * #550 — authentication is now backed by a real JWT held in the SecureStore
+ * #549/#550 — authentication is now backed by a real JWT held in the SecureStore
  * session layer (`services/session.ts`). "Explore without wallet" puts the app
  * into an explicit, in-memory-only guest mode: routes stay reachable but every
  * wallet-backed action is gated behind `requireWallet`.
@@ -13,6 +13,7 @@ import {
   subscribeToSession,
 } from './session';
 import { clearEscrowCache } from '../services/cache/escrowCache';
+import { clearAllCache } from './cache/cacheKeys';
 
 type RedirectTarget = {
   pathname: string;
@@ -76,6 +77,17 @@ export async function signOut(): Promise<void> {
   guestMode = false;
   await clearSession();
   await clearEscrowCache();
+  notify();
+}
+
+/**
+ * Full logout: clears the JWT pair, wallet address, cached escrow data,
+ * and any guest flag (#549). Use this when the user explicitly signs out.
+ */
+export async function logout(): Promise<void> {
+  guestMode = false;
+  await clearSession();
+  await clearAllCache();
   notify();
 }
 
