@@ -103,7 +103,7 @@ export async function clearEscrowCache() {
     LRU_INDEX_KEY
   );
 
-  let index: string[] = raw
+  const index: string[] = raw
     ? JSON.parse(raw)
     : [];
 
