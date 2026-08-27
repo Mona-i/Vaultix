@@ -186,11 +186,10 @@ export const disputeApi = {
     mimeType: string,
   ): Promise<{ cid: string; url: string }> => {
     const formData = new FormData();
-    formData.append('file', {
-      uri: fileUri,
-      name: fileName,
-      type: mimeType,
-    } as { uri: string; name: string; type: string });
+    /* React Native's FormData accepts { uri, name, type } but TS types don't reflect it */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fileBlob = { uri: fileUri, name: fileName, type: mimeType } as any;
+    formData.append('file', fileBlob);
 
     const { data } = await api.post<{ cid: string; url: string }>(
       `/api/escrows/${escrowId}/evidence`,

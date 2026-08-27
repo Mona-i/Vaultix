@@ -35,7 +35,7 @@ async function updateLruIndex(key: string) {
   );
 
   if (excess.length > 0) {
-    await AsyncStorage.multiRemove(excess);
+    await AsyncStorage.removeMany(excess);
   }
 
   await AsyncStorage.setItem(
@@ -109,5 +109,5 @@ export async function clearEscrowCache() {
 
   index.push(LRU_INDEX_KEY);
 
-  await AsyncStorage.multiRemove(index);
+  await AsyncStorage.removeMany(index);
 }
