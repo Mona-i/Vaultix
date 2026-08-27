@@ -4,7 +4,7 @@
  * the biometric lock shipped in #333 could never be turned on.
  */
 import React, { useState } from 'react';
-import { Alert, Clipboard, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { useBiometricLock } from '../../hooks/useBiometricLock';
@@ -74,13 +74,6 @@ export default function SettingsScreen() {
       setSeedVisible(true);
     } catch {
       Alert.alert('Error', 'Could not reveal seed. No wallet found.');
-    }
-  };
-
-  const handleCopySeed = () => {
-    if (seedValue) {
-      Clipboard.setString(seedValue);
-      Alert.alert('Copied', 'Seed copied to clipboard. Remember to clear it after backup.');
     }
   };
 

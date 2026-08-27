@@ -7,7 +7,7 @@ import {
   ReleaseMilestonePayload,
 } from '../types/escrow';
 import { withRetry } from '../utils/retry';
-import { Notification, NotificationsResponse } from '../types/notification';
+import { NotificationsResponse } from '../types/notification';
 import { getAccessToken, getSecureAccessToken } from './session';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
@@ -190,7 +190,7 @@ export const disputeApi = {
       uri: fileUri,
       name: fileName,
       type: mimeType,
-    } as any);
+    } as { uri: string; name: string; type: string });
 
     const { data } = await api.post<{ cid: string; url: string }>(
       `/api/escrows/${escrowId}/evidence`,
