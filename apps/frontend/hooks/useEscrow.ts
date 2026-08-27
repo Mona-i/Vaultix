@@ -4,7 +4,10 @@ import { IEscrowExtended, IUseEscrowReturn } from '@/types/escrow';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 
-export const useEscrow = (id: string): IUseEscrowReturn & { isLive: boolean } => {
+export const useEscrow = (id: string): IUseEscrowReturn & {
+  isLive: boolean;
+  refreshAfterTransaction: () => Promise<void>;
+} => {
   const [escrow, setEscrow] = useState<IEscrowExtended | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +39,10 @@ export const useEscrow = (id: string): IUseEscrowReturn & { isLive: boolean } =>
       setLoading(false);
     }
   }, [id]);
+
+  const refreshAfterTransaction = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
 
   // Handle active background data sync loops if WebSockets drop out
   const startPollingFallback = useCallback(() => {
@@ -105,5 +112,5 @@ export const useEscrow = (id: string): IUseEscrowReturn & { isLive: boolean } =>
     };
   }, [id, refetch, startPollingFallback, stopPollingFallback]);
 
-  return { escrow, loading, error, refetch, isLive };
+  return { escrow, loading, error, refetch, refreshAfterTransaction, isLive };
 };
