@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { fetchEscrow } from '@/lib/escrow-api';
 import { IEscrowExtended, IUseEscrowReturn } from '@/types/escrow';
-import { io, Socket } from 'socket.io-client';
+import { useWebSocket } from '@/app/contexts/WebSocketContext';
 import { toast } from 'sonner';
 
 export const useEscrow = (id: string): IUseEscrowReturn & {
@@ -12,9 +12,8 @@ export const useEscrow = (id: string): IUseEscrowReturn & {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isLive, setIsLive] = useState<boolean>(false);
-  
-  const socketRef = useRef<Socket | null>(null);
   const fallbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const { socket, isConnected } = useWebSocket();
 
   const refetch = useCallback(async () => {
     if (!id) {
@@ -63,35 +62,21 @@ export const useEscrow = (id: string): IUseEscrowReturn & {
     void refetch();
   }, [refetch]);
 
-  // ── WebSocket Lifecycle Room Subscriptions ──
   useEffect(() => {
-    if (!id) return;
-
-    const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3001';
-    
-    const socket = io(WS_URL, {
-      transports: ['websocket'],
-      autoConnect: true,
-      reconnectionAttempts: 5,
-    });
-    
-    socketRef.current = socket;
-
-    socket.on('connect', () => {
-      setIsLive(true);
+    setIsLive(isConnected);
+    if (isConnected) {
       stopPollingFallback();
-      socket.emit('escrow:join', { id });
-    });
-
-    socket.on('disconnect', () => {
-      setIsLive(false);
+    } else {
       startPollingFallback();
-    });
+    }
 
-    socket.on('connect_error', () => {
-      setIsLive(false);
-      startPollingFallback();
-    });
+    return stopPollingFallback;
+  }, [isConnected, startPollingFallback, stopPollingFallback]);
+
+  useEffect(() => {
+    if (!id || !socket || !isConnected) return;
+
+    socket.emit('escrow:join', { id });
 
     // Real-time pipe events
     const handleLiveUpdate = (event: { message: string }) => {
@@ -107,10 +92,13 @@ export const useEscrow = (id: string): IUseEscrowReturn & {
 
     return () => {
       socket.emit('escrow:leave', { id });
-      socket.disconnect();
-      stopPollingFallback();
+      socket.off('escrow:status_changed', handleLiveUpdate);
+      socket.off('escrow:funded', handleLiveUpdate);
+      socket.off('escrow:completed', handleLiveUpdate);
+      socket.off('escrow:dispute_filed', handleLiveUpdate);
+      socket.off('escrow:dispute_resolved', handleLiveUpdate);
     };
-  }, [id, refetch, startPollingFallback, stopPollingFallback]);
+  }, [id, socket, isConnected, refetch]);
 
   return { escrow, loading, error, refetch, refreshAfterTransaction, isLive };
 };
