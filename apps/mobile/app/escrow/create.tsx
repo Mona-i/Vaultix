@@ -204,7 +204,7 @@ export default function CreateEscrowScreen() {
       });
       Alert.alert('Success', 'Escrow created!', [
         { text: 'View', onPress: () => router.replace({ pathname: '/escrow/[id]', params: { id: created.id } }) },
-        { text: 'Dashboard', onPress: () => router.replace('/dashboard') },
+        { text: 'Dashboard', onPress: () => router.replace('/(tabs)/dashboard') },
       ]);
     } catch (err) {
       const friendly = toFriendlyError(err);
@@ -353,3 +353,4 @@ const styles = StyleSheet.create({
   reviewLabel: { color: '#888', fontSize: 13 },
   reviewValue: { color: '#fff', fontSize: 13, fontWeight: '500', maxWidth: '60%' },
 });
+
