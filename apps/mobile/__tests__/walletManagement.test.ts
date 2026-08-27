@@ -15,14 +15,14 @@ jest.mock('@stellar/stellar-sdk', () => ({
   Networks: { TESTNET: 'Test SDF Network ; September 2015' },
 }));
 
-const store = new Map<string, string>();
+const mockStore = new Map<string, string>();
 jest.mock('../utils/secureStore', () => ({
   saveSecureItem: jest.fn(async (key: string, value: string) => {
-    store.set(key, value);
+    mockStore.set(key, value);
   }),
-  getSecureItem: jest.fn(async (key: string) => store.get(key) ?? null),
+  getSecureItem: jest.fn(async (key: string) => mockStore.get(key) ?? null),
   deleteSecureItem: jest.fn(async (key: string) => {
-    store.delete(key);
+    mockStore.delete(key);
   }),
 }));
 
@@ -43,13 +43,13 @@ const MOCK_SEED = 'S' + 'A'.repeat(55);
 const MOCK_ADDRESS = 'G' + 'A'.repeat(55);
 
 beforeEach(() => {
-  store.clear();
+  mockStore.clear();
   jest.clearAllMocks();
 });
 
 describe('revealWalletSeed', () => {
   it('returns the stored seed', async () => {
-    store.set('vaultix-wallet-seed', MOCK_SEED);
+    mockStore.set('vaultix-wallet-seed', MOCK_SEED);
     const seed = await revealWalletSeed();
     expect(seed).toBe(MOCK_SEED);
   });
@@ -64,8 +64,8 @@ describe('importWalletFromSeed', () => {
     const keypair = await importWalletFromSeed(MOCK_SEED);
 
     expect(Keypair.fromSecret).toHaveBeenCalledWith(MOCK_SEED);
-    expect(store.get('vaultix-wallet-seed')).toBe(MOCK_SEED);
-    expect(store.get('vaultix-wallet-address')).toBe(MOCK_ADDRESS);
+    expect(mockStore.get('vaultix-wallet-seed')).toBe(MOCK_SEED);
+    expect(mockStore.get('vaultix-wallet-address')).toBe(MOCK_ADDRESS);
     expect(keypair).toBeDefined();
   });
 
@@ -85,13 +85,13 @@ describe('importWalletFromSeed', () => {
 
 describe('removeWallet', () => {
   it('deletes seed and address from secure store', async () => {
-    store.set('vaultix-wallet-seed', MOCK_SEED);
-    store.set('vaultix-wallet-address', MOCK_ADDRESS);
+    mockStore.set('vaultix-wallet-seed', MOCK_SEED);
+    mockStore.set('vaultix-wallet-address', MOCK_ADDRESS);
 
     await removeWallet();
 
-    expect(store.has('vaultix-wallet-seed')).toBe(false);
-    expect(store.has('vaultix-wallet-address')).toBe(false);
+    expect(mockStore.has('vaultix-wallet-seed')).toBe(false);
+    expect(mockStore.has('vaultix-wallet-address')).toBe(false);
   });
 
   it('clears the session', async () => {
@@ -112,7 +112,7 @@ describe('loadLocalWalletKeypair', () => {
   });
 
   it('loads keypair from stored seed', async () => {
-    store.set('vaultix-wallet-seed', MOCK_SEED);
+    mockStore.set('vaultix-wallet-seed', MOCK_SEED);
     const keypair = await loadLocalWalletKeypair();
     expect(keypair).toBeDefined();
     expect(keypair!.publicKey()).toBe(MOCK_ADDRESS);
