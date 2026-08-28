@@ -9,8 +9,14 @@ import { PreferenceService } from '../../src/notifications/preference.service';
 import { NotificationPreference } from '../../src/notifications/entities/notification-preference.entity';
 import { User } from '../../src/modules/user/entities/user.entity';
 import { EscrowService } from '../../src/modules/escrow/services/escrow.service';
-import { EscrowStatus, EscrowType } from '../../src/modules/escrow/entities/escrow.entity';
-import { PartyRole, PartyStatus } from '../../src/modules/escrow/entities/party.entity';
+import {
+  EscrowStatus,
+  EscrowType,
+} from '../../src/modules/escrow/entities/escrow.entity';
+import {
+  PartyRole,
+  PartyStatus,
+} from '../../src/modules/escrow/entities/party.entity';
 import { ConditionType } from '../../src/modules/escrow/entities/condition.entity';
 import { UserRole } from '../../src/modules/user/entities/user.entity';
 import { NotificationChannel } from '../../src/notifications/enums/notification-event.enum';
@@ -22,7 +28,7 @@ import { WebhookSender } from '../../src/notifications/senders/webhook.sender';
  *
  * Tests that:
  * 1. Fund escrow creates exactly 1 notification per party
- * 2. Complete milestone creates exactly 1 notification 
+ * 2. Complete milestone creates exactly 1 notification
  * 3. File dispute creates exactly 1 notification to counterparty + admin
  * 4. Duplicate calls with same idempotency key are prevented
  * 5. Different events with different keys create separate notifications
@@ -166,7 +172,11 @@ describe('Notification Deduplication (e2e-style)', () => {
     partyRepo = { findOne: jest.fn(), find: jest.fn(), save: jest.fn() };
     conditionRepo = { save: jest.fn() };
     escrowEventRepo = { create: jest.fn((value) => value), save: jest.fn() };
-    disputeRepo = { findOne: jest.fn(), create: jest.fn((value) => value), save: jest.fn() };
+    disputeRepo = {
+      findOne: jest.fn(),
+      create: jest.fn((value) => value),
+      save: jest.fn(),
+    };
     assetRepo = {};
     stellarIntegration = { fundOnChainEscrow: jest.fn() };
     webhookService = { dispatchEvent: jest.fn() };
@@ -236,24 +246,39 @@ describe('Notification Deduplication (e2e-style)', () => {
       status: EscrowStatus.PENDING,
       stellarTxHash: undefined,
       parties: [
-        { userId: testUserId, role: PartyRole.BUYER, status: PartyStatus.ACCEPTED },
-        { userId: 'seller-id', role: PartyRole.SELLER, status: PartyStatus.ACCEPTED },
+        {
+          userId: testUserId,
+          role: PartyRole.BUYER,
+          status: PartyStatus.ACCEPTED,
+        },
+        {
+          userId: 'seller-id',
+          role: PartyRole.SELLER,
+          status: PartyStatus.ACCEPTED,
+        },
       ],
       conditions: [],
     } as any;
     escrowRepo.findOne.mockResolvedValue(escrow);
     stellarIntegration.fundOnChainEscrow.mockResolvedValue('fund-tx');
 
-    await escrowService.fund('fund-escrow', { amount: 100 } as any, testUserId, 'buyer-wallet');
+    await escrowService.fund(
+      'fund-escrow',
+      { amount: 100 } as any,
+      testUserId,
+      'buyer-wallet',
+    );
 
     const notifications = await notificationRepo.find({
-      where: { escrowId: 'fund-escrow', eventType: NotificationEventType.ESCROW_FUNDED },
+      where: {
+        escrowId: 'fund-escrow',
+        eventType: NotificationEventType.ESCROW_FUNDED,
+      },
     });
     expect(notifications).toHaveLength(2);
-    expect(notifications.map((notification) => notification.userId).sort()).toEqual([
-      'seller-id',
-      testUserId,
-    ]);
+    expect(
+      notifications.map((notification) => notification.userId).sort(),
+    ).toEqual(['seller-id', testUserId]);
   });
 
   it('releases a milestone and creates exactly one notification', async () => {
@@ -272,14 +297,29 @@ describe('Notification Deduplication (e2e-style)', () => {
         { userId: testUserId, role: PartyRole.BUYER },
         { userId: 'seller-id', role: PartyRole.SELLER },
       ],
-      conditions: [{ id: 'condition-1', type: ConditionType.MANUAL, isMet: true, isReleased: false, amount: 100 }],
+      conditions: [
+        {
+          id: 'condition-1',
+          type: ConditionType.MANUAL,
+          isMet: true,
+          isReleased: false,
+          amount: 100,
+        },
+      ],
     } as any;
     escrowRepo.findOne.mockResolvedValue(escrow);
 
-    await escrowService.releaseMilestone('milestone-escrow', 'condition-1', testUserId);
+    await escrowService.releaseMilestone(
+      'milestone-escrow',
+      'condition-1',
+      testUserId,
+    );
 
     const notifications = await notificationRepo.find({
-      where: { escrowId: 'milestone-escrow', eventType: NotificationEventType.MILESTONE_RELEASED },
+      where: {
+        escrowId: 'milestone-escrow',
+        eventType: NotificationEventType.MILESTONE_RELEASED,
+      },
     });
     expect(notifications).toHaveLength(1);
     expect(notifications[0].userId).toBe('seller-id');
@@ -300,16 +340,20 @@ describe('Notification Deduplication (e2e-style)', () => {
       .mockResolvedValueOnce(null)
       .mockResolvedValue({ id: 'dispute-1' });
     disputeRepo.save.mockResolvedValue({ id: 'dispute-1' });
-    await escrowService.fileDispute('dispute-escrow', testUserId, { reason: 'Issue' } as any);
+    await escrowService.fileDispute('dispute-escrow', testUserId, {
+      reason: 'Issue',
+    } as any);
 
     const notifications = await notificationRepo.find({
-      where: { escrowId: 'dispute-escrow', eventType: NotificationEventType.DISPUTE_RAISED },
+      where: {
+        escrowId: 'dispute-escrow',
+        eventType: NotificationEventType.DISPUTE_RAISED,
+      },
     });
     expect(notifications).toHaveLength(2);
-    expect(notifications.map((notification) => notification.userId).sort()).toEqual([
-      'admin-id',
-      'seller-id',
-    ]);
+    expect(
+      notifications.map((notification) => notification.userId).sort(),
+    ).toEqual(['admin-id', 'seller-id']);
   });
 
   it('should create exactly 1 notification for fund escrow event', async () => {
@@ -548,8 +592,12 @@ describe('Notification Deduplication (e2e-style)', () => {
     });
 
     expect(notifications.length).toBe(2);
-    expect(notifications.map((n) => n.eventType)).toContain(NotificationEventType.ESCROW_FUNDED);
-    expect(notifications.map((n) => n.eventType)).toContain(NotificationEventType.MILESTONE_RELEASED);
+    expect(notifications.map((n) => n.eventType)).toContain(
+      NotificationEventType.ESCROW_FUNDED,
+    );
+    expect(notifications.map((n) => n.eventType)).toContain(
+      NotificationEventType.MILESTONE_RELEASED,
+    );
   });
 
   it('should allow same event type for different users', async () => {

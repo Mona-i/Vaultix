@@ -28,7 +28,7 @@ import {
   EscrowEvent,
   EscrowEventType,
 } from '../../escrow/entities/escrow-event.entity';
-import { Party, PartyRole } from '../../escrow/entities/party.entity';
+import { Party } from '../../escrow/entities/party.entity';
 import { SorobanClientService } from '../../../services/stellar/soroban-client.service';
 import { ConsistencyCheckerService } from '../../admin/services/consistency-checker.service';
 import { AllowedAsset } from '../../assets/entities/allowed-asset.entity';
@@ -734,7 +734,6 @@ export class StellarEventListenerService
         wsError,
       );
     }
-
   }
 
   private async handleEscrowCompleted(event: StellarEvent) {

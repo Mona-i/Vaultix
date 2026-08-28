@@ -1172,7 +1172,7 @@ export class EscrowService {
   }
 
   /**
-    * Dispatch a notification to every escrow participant
+   * Dispatch a notification to every escrow participant
    * (creator + parties), excluding the acting user. Failures must not
    * block the dispute workflow.
    */
