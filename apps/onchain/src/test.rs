@@ -120,6 +120,7 @@ fn create_test_contract_full<'a>(
     (client, contract_id)
 }
 
+#[allow(dead_code)]
 fn create_test_contract<'a>(
     env: &Env,
     admin: &Address,
@@ -516,7 +517,7 @@ fn test_admin_proposal_expires_after_window() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let replacement_admin = Address::generate(&env);
@@ -641,7 +642,7 @@ fn test_create_escrow_fails_when_paused() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, None);
 
     let depositor = Address::generate(&env);
@@ -831,7 +832,7 @@ fn test_create_escrow_rejects_zero_metadata_hash() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let depositor = Address::generate(&env);
@@ -869,7 +870,7 @@ fn test_create_escrows_batch_rejects_zero_metadata_hash() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let depositor = Address::generate(&env);
@@ -1045,7 +1046,7 @@ fn test_create_escrows_batch_is_atomic() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let depositor = Address::generate(&env);
@@ -1406,7 +1407,7 @@ fn test_cancel_unfunded_escrow() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let depositor = Address::generate(&env);
@@ -2358,7 +2359,7 @@ fn test_duplicate_escrow_id() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let depositor = Address::generate(&env);
@@ -2454,7 +2455,7 @@ fn test_too_many_milestones() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let depositor = Address::generate(&env);
@@ -2493,7 +2494,7 @@ fn test_invalid_milestone_amount() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let depositor = Address::generate(&env);
@@ -2622,7 +2623,7 @@ fn test_zero_amount_milestone_rejected() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
     let depositor = Address::generate(&env);
     let recipient = Address::generate(&env);
@@ -2661,7 +2662,7 @@ fn test_legacy_escrow_migrates_to_v2_and_preserves_metadata() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
     let depositor = Address::generate(&env);
     let recipient = Address::generate(&env);
@@ -2712,7 +2713,7 @@ fn test_milestone_sum_overflow_rejected() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
     let depositor = Address::generate(&env);
     let recipient = Address::generate(&env);
@@ -2756,7 +2757,7 @@ fn test_negative_amount_milestone_rejected() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
     let depositor = Address::generate(&env);
     let recipient = Address::generate(&env);
@@ -2795,7 +2796,7 @@ fn test_self_dealing_rejected() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
     let same_party = Address::generate(&env);
     let escrow_id = 13u64;
@@ -2833,7 +2834,7 @@ fn test_valid_escrow_creation_succeeds() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
     let depositor = Address::generate(&env);
     let recipient = Address::generate(&env);
@@ -2988,7 +2989,7 @@ fn test_release_milestone_before_deposit() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let depositor = Address::generate(&env);
@@ -3828,7 +3829,7 @@ fn test_set_token_fee_valid() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     // 0.5% default
@@ -3853,7 +3854,7 @@ fn test_set_token_fee_invalid_fee_too_high() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let (_token_client, _token_admin, token_address) = create_token_contract(&env, &admin);
@@ -3889,7 +3890,7 @@ fn test_set_escrow_fee_valid() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     // 0.5% default
@@ -3915,7 +3916,7 @@ fn test_set_escrow_fee_invalid_fee_too_high() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let escrow_id = 1u64;
@@ -4442,7 +4443,7 @@ fn test_release_milestone_above_threshold_insufficient_signatures() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let depositor = Address::generate(&env);
@@ -4548,7 +4549,7 @@ fn test_list_escrows_by_depositor() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let depositor = Address::generate(&env);
@@ -4604,7 +4605,7 @@ fn test_list_escrows_by_recipient() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let depositor1 = Address::generate(&env);
@@ -4660,7 +4661,7 @@ fn test_list_escrows_pagination() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let depositor = Address::generate(&env);
@@ -4720,7 +4721,7 @@ fn test_list_escrows_page_size_limit() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let _admin = Address::generate(&env);
@@ -4750,7 +4751,7 @@ fn test_list_escrows_invalid_role() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let _admin = Address::generate(&env);
@@ -4770,7 +4771,7 @@ fn test_list_escrows_empty_party() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let _admin = Address::generate(&env);
@@ -5135,7 +5136,7 @@ fn test_list_escrows_returns_lightweight_summaries() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let depositor = Address::generate(&env);
@@ -5187,7 +5188,7 @@ fn test_max_fee_10000_bps_valid() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let (_token_client, _token_admin, token_address) = create_token_contract(&env, &admin);
@@ -5220,7 +5221,7 @@ fn test_lifecycle_events_contain_all_summary_fields() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let depositor = Address::generate(&env);
@@ -5371,7 +5372,7 @@ fn test_event_ordering_is_deterministic() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (client, _contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(0));
 
     let depositor = Address::generate(&env);
@@ -5487,7 +5488,7 @@ fn test_contract_upgraded_uses_canonical_topic() {
     let operator = Address::generate(&env);
     let arbitrator = Address::generate(&env);
     let treasury = Address::generate(&env);
-    let (client, contract_id) =
+    let (_client, contract_id) =
         create_test_contract_full(&env, &admin, &operator, &arbitrator, &treasury, Some(50));
 
     let new_wasm_hash = [7u8; 32];
