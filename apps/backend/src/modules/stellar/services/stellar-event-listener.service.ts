@@ -33,8 +33,6 @@ import { SorobanClientService } from '../../../services/stellar/soroban-client.s
 import { ConsistencyCheckerService } from '../../admin/services/consistency-checker.service';
 import { AllowedAsset } from '../../assets/entities/allowed-asset.entity';
 import { EscrowGateway } from '../../../gateways/escrow.gateway';
-import { NotificationService } from '../../../notifications/notifications.service';
-import { NotificationEventType } from '../../../notifications/enums/notification-event.enum';
 
 @Injectable()
 export class StellarEventListenerService
@@ -66,7 +64,6 @@ export class StellarEventListenerService
     @Inject(forwardRef(() => ConsistencyCheckerService))
     private consistencyChecker: ConsistencyCheckerService,
     @Optional() private escrowGateway?: EscrowGateway,
-    @Optional() private notificationService?: NotificationService,
   ) {}
 
   async onModuleInit() {
@@ -738,35 +735,6 @@ export class StellarEventListenerService
       );
     }
 
-    // 8. Create notifications for buyer and seller
-    try {
-      const parties = await this.partyRepository.find({
-        where: { escrowId: escrow.id },
-      });
-
-      const notificationPayload = {
-        escrowId: escrow.id,
-        milestoneIndex,
-        amount: releaseAmount,
-        txHash: event.txHash,
-        escrowTitle: escrow.title,
-      };
-
-      for (const party of parties) {
-        if (party.role === PartyRole.BUYER || party.role === PartyRole.SELLER) {
-          await this.notificationService?.handleEscrowEvent(
-            party.userId,
-            NotificationEventType.MILESTONE_RELEASED,
-            notificationPayload,
-          );
-        }
-      }
-    } catch (notifError) {
-      this.logger.error(
-        'Failed to create milestone release notifications',
-        notifError,
-      );
-    }
   }
 
   private async handleEscrowCompleted(event: StellarEvent) {
