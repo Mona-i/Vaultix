@@ -21,10 +21,7 @@ import {
 import { AuthGuard } from '../auth/middleware/auth.guard';
 import { AdminGuard } from '../auth/middleware/admin.guard';
 import { BackupService } from './services/backup.service';
-import {
-  TriggerBackupDto,
-  BackupStatusResponse,
-} from './dto/backup.dto';
+import { TriggerBackupDto, BackupStatusResponse } from './dto/backup.dto';
 
 @ApiTags('admin/backup')
 @ApiBearerAuth()

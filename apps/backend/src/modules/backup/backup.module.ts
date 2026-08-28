@@ -6,10 +6,7 @@ import { BackupRecord } from './entities/backup-record.entity';
 import { AdminModule } from '../admin/admin.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([BackupRecord]),
-    AdminModule,
-  ],
+  imports: [TypeOrmModule.forFeature([BackupRecord]), AdminModule],
   controllers: [BackupController],
   providers: [BackupService],
   exports: [BackupService],

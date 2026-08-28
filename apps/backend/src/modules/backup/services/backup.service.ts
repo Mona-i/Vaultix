@@ -6,18 +6,30 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, Not } from 'typeorm';
+import { Repository, LessThanOrEqual } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import {
-  S3Client,
-  PutObjectCommand,
-} from '@aws-sdk/client-s3';
-import { BackupRecord, BackupStatus, BackupType, BackupRetentionPolicy } from '../entities/backup-record.entity';
+  BackupRecord,
+  BackupStatus,
+  BackupType,
+  BackupRetentionPolicy,
+} from '../entities/backup-record.entity';
 import { TriggerBackupDto, BackupStatusResponse } from '../dto/backup.dto';
 import { AdminAuditLogService } from '../../admin/services/admin-audit-log.service';
+
+interface SqliteBackup {
+  step(pages: number): Promise<void>;
+  finish(): Promise<void>;
+}
+
+interface SqliteDatabase {
+  backup(dest: string): SqliteBackup;
+  close(callback: (err: Error | null) => void): void;
+}
 
 @Injectable()
 export class BackupService {
@@ -65,7 +77,10 @@ export class BackupService {
 
     // Initialize S3 client if configured
     const s3Endpoint = this.configService.get<string>('BACKUP_S3_ENDPOINT');
-    const s3Region = this.configService.get<string>('BACKUP_S3_REGION', 'us-east-1');
+    const s3Region = this.configService.get<string>(
+      'BACKUP_S3_REGION',
+      'us-east-1',
+    );
     const s3AccessKey = this.configService.get<string>('BACKUP_S3_ACCESS_KEY');
     const s3SecretKey = this.configService.get<string>('BACKUP_S3_SECRET_KEY');
 
@@ -121,7 +136,7 @@ export class BackupService {
     try {
       // Pre-backup consistency check
       this.logger.log('Running pre-backup consistency check...');
-      await this.preBackupConsistencyCheck();
+      this.preBackupConsistencyCheck();
 
       // Create the backup
       this.logger.log(`Creating backup: ${filename}`);
@@ -225,11 +240,12 @@ export class BackupService {
       where: { status: BackupStatus.COMPLETED },
     });
 
-    const totalSizeResult = await this.backupRecordRepo
-      .createQueryBuilder('record')
-      .select('SUM(record.sizeBytes)', 'total')
-      .where('record.status = :status', { status: BackupStatus.COMPLETED })
-      .getRawOne();
+    const totalSizeResult: { total: string } | undefined =
+      await this.backupRecordRepo
+        .createQueryBuilder('record')
+        .select('SUM(record.sizeBytes)', 'total')
+        .where('record.status = :status', { status: BackupStatus.COMPLETED })
+        .getRawOne();
 
     const totalSizeBytes = parseInt(totalSizeResult?.total || '0', 10);
 
@@ -257,9 +273,9 @@ export class BackupService {
       storageQuota: {
         usedBytes: totalSizeBytes,
         quotaBytes: this.storageQuotaBytes,
-        usagePercent: Math.round(
-          (totalSizeBytes / this.storageQuotaBytes) * 100 * 100,
-        ) / 100,
+        usagePercent:
+          Math.round((totalSizeBytes / this.storageQuotaBytes) * 100 * 100) /
+          100,
         alertThreshold: this.alertThresholdPercent,
         isOverThreshold:
           (totalSizeBytes / this.storageQuotaBytes) * 100 >=
@@ -297,17 +313,14 @@ export class BackupService {
       fs.mkdirSync(tmpDir, { recursive: true });
     }
 
-    const tmpRestorePath = path.join(
-      tmpDir,
-      `verify_${Date.now()}.db`,
-    );
+    const tmpRestorePath = path.join(tmpDir, `verify_${Date.now()}.db`);
 
     try {
       // If encrypted, decrypt to temp
       if (record.encrypted && this.encryptionKey) {
         const tmpEncrypted = `${tmpRestorePath}.enc`;
         fs.copyFileSync(record.localPath, tmpEncrypted);
-        await this.decryptFile(tmpEncrypted, tmpRestorePath);
+        this.decryptFile(tmpEncrypted, tmpRestorePath);
         fs.unlinkSync(tmpEncrypted);
       } else {
         fs.copyFileSync(record.localPath, tmpRestorePath);
@@ -407,9 +420,7 @@ export class BackupService {
         if (record.remotePath && this.s3Client) {
           const s3Key = this.extractS3Key(record.remotePath);
           if (s3Key) {
-            // We'll use deleteObject command
             this.logger.log(`Would delete S3 object: ${s3Key}`);
-            // Note: would need DeleteObjectCommand imported
           }
         }
 
@@ -418,9 +429,7 @@ export class BackupService {
         deletedIds.push(record.id);
         this.logger.log(`Deleted backup record: ${record.id}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to delete backup ${record.id}: ${error}`,
-        );
+        this.logger.error(`Failed to delete backup ${record.id}: ${error}`);
       }
     }
 
@@ -435,15 +444,15 @@ export class BackupService {
    * Check storage quota and alert if over threshold.
    */
   private async checkStorageQuota(): Promise<void> {
-    const totalSizeResult = await this.backupRecordRepo
-      .createQueryBuilder('record')
-      .select('SUM(record.sizeBytes)', 'total')
-      .where('record.status = :status', { status: BackupStatus.COMPLETED })
-      .getRawOne();
+    const totalSizeResult: { total: string } | undefined =
+      await this.backupRecordRepo
+        .createQueryBuilder('record')
+        .select('SUM(record.sizeBytes)', 'total')
+        .where('record.status = :status', { status: BackupStatus.COMPLETED })
+        .getRawOne();
 
     const totalSizeBytes = parseInt(totalSizeResult?.total || '0', 10);
-    const usagePercent =
-      (totalSizeBytes / this.storageQuotaBytes) * 100;
+    const usagePercent = (totalSizeBytes / this.storageQuotaBytes) * 100;
 
     if (usagePercent >= this.alertThresholdPercent) {
       this.logger.warn(
@@ -467,21 +476,17 @@ export class BackupService {
   /**
    * Pre-backup consistency check: verify the database is accessible and WAL checkpoint.
    */
-  private async preBackupConsistencyCheck(): Promise<void> {
+  private preBackupConsistencyCheck(): void {
     const dbFullPath = path.resolve(process.cwd(), this.dbPath);
 
     if (!fs.existsSync(dbFullPath)) {
-      throw new BadRequestException(
-        `Database file not found: ${dbFullPath}`,
-      );
+      throw new BadRequestException(`Database file not found: ${dbFullPath}`);
     }
 
     // Check if WAL mode is enabled by looking for WAL file
     const walPath = `${dbFullPath}-wal`;
     if (fs.existsSync(walPath)) {
-      this.logger.log(
-        'WAL mode detected - will checkpoint before backup',
-      );
+      this.logger.log('WAL mode detected - will checkpoint before backup');
     }
 
     // Verify database integrity by reading the header
@@ -504,41 +509,45 @@ export class BackupService {
    * Create a backup of the SQLite database using the online backup API.
    */
   private async createSqliteBackup(destPath: string): Promise<void> {
-    const sqlite3 = require('sqlite3').verbose();
     const dbFullPath = path.resolve(process.cwd(), this.dbPath);
 
     return new Promise<void>((resolve, reject) => {
-      const db = new sqlite3.Database(dbFullPath, (err: Error | null) => {
-        if (err) {
-          reject(new Error(`Failed to open database: ${err.message}`));
-          return;
-        }
+      /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
 
-        // Use SQLite's backup API for a consistent snapshot
-        const backup = db.backup(destPath);
+      const sqlite3Mod = require('sqlite3').verbose();
+      const db: SqliteDatabase = new sqlite3Mod.Database(
+        dbFullPath,
+        (err: Error | null) => {
+          if (err) {
+            reject(new Error(`Failed to open database: ${err.message}`));
+            return;
+          }
 
-        backup
-          .step(-1) // Backup entire database
-          .then(() => {
-            return backup.finish();
-          })
-          .then(() => {
-            db.close((closeErr: Error | null) => {
-              if (closeErr) {
-                this.logger.warn(
-                  `Warning closing database after backup: ${closeErr.message}`,
-                );
-              }
-              resolve();
+          // Use SQLite's backup API for a consistent snapshot
+          const backup = db.backup(destPath);
+
+          backup
+            .step(-1) // Backup entire database
+            .then(() => {
+              return backup.finish();
+            })
+            .then(() => {
+              db.close((closeErr: Error | null) => {
+                if (closeErr) {
+                  this.logger.warn(
+                    `Warning closing database after backup: ${closeErr.message}`,
+                  );
+                }
+                resolve();
+              });
+            })
+            .catch((backupErr: Error) => {
+              db.close(() => {});
+              reject(new Error(`Backup step failed: ${backupErr.message}`));
             });
-          })
-          .catch((backupErr: Error) => {
-            db.close(() => {});
-            reject(
-              new Error(`Backup step failed: ${backupErr.message}`),
-            );
-          });
-      });
+        },
+      );
+      /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access */
     });
   }
 
@@ -580,20 +589,14 @@ export class BackupService {
   /**
    * Decrypt a file encrypted with AES-256-GCM.
    */
-  private async decryptFile(
-    inputPath: string,
-    outputPath: string,
-  ): Promise<void> {
+  private decryptFile(inputPath: string, outputPath: string): void {
     const key = this.deriveEncryptionKey();
     const input = fs.readFileSync(inputPath);
 
     // Read IV (12 bytes) and auth tag length (1 byte)
     const iv = input.subarray(0, 12);
     const authTagLength = input[12];
-    const authTag = input.subarray(
-      13,
-      13 + authTagLength,
-    );
+    const authTag = input.subarray(13, 13 + authTagLength);
     const encryptedData = input.subarray(13 + authTagLength);
 
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
@@ -611,11 +614,7 @@ export class BackupService {
    * Derive a 32-byte encryption key from the configured key string.
    */
   private deriveEncryptionKey(): Buffer {
-    return crypto.scryptSync(
-      this.encryptionKey,
-      'vaultix-backup-salt',
-      32,
-    );
+    return crypto.scryptSync(this.encryptionKey, 'vaultix-backup-salt', 32);
   }
 
   /**
@@ -635,10 +634,7 @@ export class BackupService {
   /**
    * Upload a file to S3.
    */
-  private async uploadToS3(
-    filePath: string,
-    s3Key: string,
-  ): Promise<void> {
+  private async uploadToS3(filePath: string, s3Key: string): Promise<void> {
     if (!this.s3Client) {
       throw new Error('S3 client not configured');
     }

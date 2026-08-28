@@ -1,9 +1,4 @@
-import {
-  IsOptional,
-  IsEnum,
-  IsBoolean,
-  IsString,
-} from 'class-validator';
+import { IsOptional, IsEnum, IsBoolean, IsString } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { BackupRetentionPolicy } from '../entities/backup-record.entity';
 

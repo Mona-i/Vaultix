@@ -2,7 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { BackupService } from './backup.service';
-import { BackupRecord, BackupStatus, BackupType, BackupRetentionPolicy } from '../entities/backup-record.entity';
+import {
+  BackupRecord,
+  BackupStatus,
+  BackupType,
+  BackupRetentionPolicy,
+} from '../entities/backup-record.entity';
 import { AdminAuditLogService } from '../../admin/services/admin-audit-log.service';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -17,7 +22,7 @@ jest.mock('fs', () => ({
   writeFileSync: jest.fn(),
   unlinkSync: jest.fn(),
   createReadStream: jest.fn().mockReturnValue({
-    on: jest.fn((event: string, cb: Function) => {
+    on: jest.fn((event: string, cb: (...args: unknown[]) => void) => {
       if (event === 'data') cb(Buffer.from('test-data'));
       if (event === 'end') cb();
       return { on: jest.fn() };
@@ -27,16 +32,18 @@ jest.mock('fs', () => ({
   createWriteStream: jest.fn().mockReturnValue({
     write: jest.fn(),
     end: jest.fn(),
-    on: jest.fn((event, cb) => {
+    on: jest.fn((event: string, cb: (...args: unknown[]) => void) => {
       if (event === 'finish') cb();
       return { on: jest.fn() };
     }),
   }),
   openSync: jest.fn().mockReturnValue(1),
-  readSync: jest.fn().mockImplementation((_fd, buffer) => {
+  readSync: jest.fn().mockImplementation((_fd: number, buffer: Buffer) => {
     // Write valid SQLite header into the buffer
     const header = 'SQLite format 3';
-    header.split('').forEach((char, i) => { buffer[i] = char.charCodeAt(0); });
+    header.split('').forEach((char, i) => {
+      buffer[i] = char.charCodeAt(0);
+    });
     return 16;
   }),
   closeSync: jest.fn(),
@@ -53,16 +60,16 @@ jest.mock('sqlite3', () => ({
         step: jest.fn().mockResolvedValue(undefined),
         finish: jest.fn().mockResolvedValue(undefined),
       }),
-      close: jest.fn((cb) => cb?.(null)),
+      close: jest.fn((cb: (err: Error | null) => void) => cb?.(null)),
     })),
   }),
 }));
 
 describe('BackupService', () => {
   let service: BackupService;
-  let backupRepo: jest.Mocked<any>;
-  let auditLogService: jest.Mocked<AdminAuditLogService>;
-  let configService: jest.Mocked<ConfigService>;
+  let backupRepo: any;
+  let auditLogService: any;
+  let configService: any;
 
   beforeEach(async () => {
     backupRepo = {
@@ -81,11 +88,11 @@ describe('BackupService', () => {
 
     auditLogService = {
       create: jest.fn(),
-    } as any;
+    };
 
     configService = {
-      get: jest.fn((key: string, defaultVal?: any) => {
-        const config: Record<string, any> = {
+      get: jest.fn((key: string, defaultVal?: unknown) => {
+        const config: Record<string, unknown> = {
           DATABASE_PATH: './data/vaultix.db',
           BACKUP_LOCAL_DIR: '/tmp/backups',
           BACKUP_S3_BUCKET: '',
@@ -96,13 +103,19 @@ describe('BackupService', () => {
         };
         return config[key] ?? defaultVal;
       }),
-    } as any;
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BackupService,
-        { provide: getRepositoryToken(BackupRecord), useValue: backupRepo },
-        { provide: AdminAuditLogService, useValue: auditLogService },
+        {
+          provide: getRepositoryToken(BackupRecord),
+          useValue: backupRepo,
+        },
+        {
+          provide: AdminAuditLogService,
+          useValue: auditLogService,
+        },
         { provide: ConfigService, useValue: configService },
       ],
     }).compile();
@@ -130,16 +143,31 @@ describe('BackupService', () => {
         metadata: undefined,
       };
 
-      backupRepo.create.mockReturnValue({ ...mockRecord, status: BackupStatus.IN_PROGRESS });
-      backupRepo.save.mockImplementation((record) => Promise.resolve({ ...mockRecord, ...record }));
+      backupRepo.create.mockReturnValue({
+        ...mockRecord,
+        status: BackupStatus.IN_PROGRESS,
+      });
+      backupRepo.save.mockImplementation((record: Partial<BackupRecord>) =>
+        Promise.resolve({ ...mockRecord, ...record }),
+      );
 
       // Mock internal methods to avoid sqlite3 native module issues in tests
-      jest.spyOn(service as any, 'createSqliteBackup').mockResolvedValue(undefined);
-      jest.spyOn(service as any, 'calculateChecksum').mockResolvedValue('abc123');
-      jest.spyOn(service as any, 'preBackupConsistencyCheck').mockResolvedValue(undefined);
-      jest.spyOn(service as any, 'checkStorageQuota').mockResolvedValue(undefined);
+      jest
+        .spyOn(service as any, 'createSqliteBackup')
+        .mockResolvedValue(undefined);
+      jest
+        .spyOn(service as any, 'calculateChecksum')
+        .mockResolvedValue('abc123');
+      jest
+        .spyOn(service as any, 'preBackupConsistencyCheck')
+        .mockImplementation(() => undefined);
+      jest
+        .spyOn(service as any, 'checkStorageQuota')
+        .mockResolvedValue(undefined);
 
-      const result = await service.triggerBackup({ note: 'test backup' });
+      const result = await service.triggerBackup({
+        note: 'test backup',
+      });
 
       expect(backupRepo.create).toHaveBeenCalled();
       expect(backupRepo.save).toHaveBeenCalledTimes(2); // Once for IN_PROGRESS, once for COMPLETED
@@ -151,14 +179,20 @@ describe('BackupService', () => {
         status: BackupStatus.IN_PROGRESS,
         filename: 'test.db',
       });
-      backupRepo.save.mockImplementation((record) => Promise.resolve({ ...record, id: 'uuid-1' }));
+      backupRepo.save.mockImplementation((record: Partial<BackupRecord>) =>
+        Promise.resolve({ ...record, id: 'uuid-1' }),
+      );
 
       // Make the backup step fail
-      jest.spyOn<any, any>(service as any, 'createSqliteBackup').mockRejectedValue(new Error('Backup failed'));
+      jest
+        .spyOn(service as any, 'createSqliteBackup')
+        .mockRejectedValue(new Error('Backup failed'));
 
       await expect(service.triggerBackup()).rejects.toThrow();
       expect(backupRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ status: BackupStatus.FAILED }),
+        expect.objectContaining({
+          status: BackupStatus.FAILED,
+        }),
       );
     });
   });

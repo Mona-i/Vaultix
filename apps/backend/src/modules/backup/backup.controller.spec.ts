@@ -1,7 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BackupController } from './backup.controller';
 import { BackupService } from './services/backup.service';
-import { BackupStatus, BackupType, BackupRetentionPolicy } from './entities/backup-record.entity';
+import {
+  BackupStatus,
+  BackupRetentionPolicy,
+} from './entities/backup-record.entity';
 import { AuthGuard } from '../auth/middleware/auth.guard';
 import { AdminGuard } from '../auth/middleware/admin.guard';
 
@@ -15,13 +18,11 @@ describe('BackupController', () => {
       getBackupStatus: jest.fn(),
       verifyBackup: jest.fn(),
       applyRetentionPolicy: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<BackupService>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BackupController],
-      providers: [
-        { provide: BackupService, useValue: backupService },
-      ],
+      providers: [{ provide: BackupService, useValue: backupService }],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })
