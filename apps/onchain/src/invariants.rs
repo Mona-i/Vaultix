@@ -50,7 +50,6 @@ pub fn validate_status_transition(from: EscrowStatus, to: EscrowStatus) -> Resul
     let valid = matches!(
         (from, to),
         (EscrowStatus::Created, EscrowStatus::Active)
-            | (EscrowStatus::Created, EscrowStatus::Disputed)
             | (EscrowStatus::Created, EscrowStatus::Cancelled)
             | (EscrowStatus::Active, EscrowStatus::Disputed)
             | (EscrowStatus::Active, EscrowStatus::Cancelled)
