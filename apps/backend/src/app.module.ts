@@ -45,6 +45,8 @@ import ipfsConfig from './config/ipfs.config';
 import emailConfig from './config/email.config';
 import webhookConfig from './config/webhook.config';
 import { ApiV2Module } from './modules/versioning/api-v2.module';
+import { BackupModule } from './modules/backup/backup.module';
+import { BackupRecord } from './modules/backup/entities/backup-record.entity';
 
 @Module({
   imports: [
@@ -103,6 +105,7 @@ import { ApiV2Module } from './modules/versioning/api-v2.module';
           StellarEvent,
           AllowedAsset,
           EmailOutbox,
+          BackupRecord,
         ],
         synchronize: false,
         migrations: [__dirname + '/migrations/*.ts'],
@@ -125,6 +128,7 @@ import { ApiV2Module } from './modules/versioning/api-v2.module';
     AppVersionModule,
     EmailModule,
     ApiV2Module,
+    BackupModule,
     JwtModule.registerAsync({
       useFactory: (configService: ConfigService) => ({
         secret: validateJwtSecret(configService.get<string>('JWT_SECRET')),
