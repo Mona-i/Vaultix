@@ -37,7 +37,7 @@ export class MockKycProvider implements IKycProvider {
     { userId: string; status: KycStatus; reason?: string }
   >();
 
-  async initiateVerification(
+  initiateVerification(
     userId: string,
     redirectPath?: string,
   ): Promise<KycInitiateResult> {
@@ -58,36 +58,37 @@ export class MockKycProvider implements IKycProvider {
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 24);
 
-    return {
+    return Promise.resolve({
       verificationId,
       redirectUrl,
       expiresAt,
-    };
+    });
   }
 
-  async getVerificationStatus(verificationId: string): Promise<{
+  getVerificationStatus(verificationId: string): Promise<{
     status: KycStatus;
     rejectionReason?: string;
     metadata?: Record<string, unknown>;
   }> {
     const verification = this.verifications.get(verificationId);
     if (!verification) {
-      return { status: KycStatus.NOT_STARTED };
+      return Promise.resolve({ status: KycStatus.NOT_STARTED });
     }
 
-    return {
+    return Promise.resolve({
       status: verification.status,
       rejectionReason: verification.reason,
       metadata: { provider: 'mock' },
-    };
+    });
   }
 
-  validateWebhook(_payload: unknown, _signature: string): boolean {
-    // Mock provider does not validate signatures
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  validateWebhook(payload: unknown, signature: string): boolean {
+    // Mock provider does not validate signatures — params intentionally unused
     return true;
   }
 
-  async processWebhook(payload: unknown): Promise<KycWebhookResult> {
+  processWebhook(payload: unknown): Promise<KycWebhookResult> {
     const p = payload as {
       verificationId?: string;
       status?: string;
@@ -96,16 +97,19 @@ export class MockKycProvider implements IKycProvider {
     const { verificationId, status, rejectionReason } = p;
 
     if (!verificationId) {
-      throw new Error('verificationId is required in webhook payload');
+      return Promise.reject(
+        new Error('verificationId is required in webhook payload'),
+      );
     }
 
     const verification = this.verifications.get(verificationId);
     if (!verification) {
-      throw new Error(`Unknown verification ID: ${verificationId}`);
+      return Promise.reject(
+        new Error(`Unknown verification ID: ${verificationId}`),
+      );
     }
 
     // Update internal state
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     verification.status = status as KycStatus;
     if (rejectionReason) {
       verification.reason = rejectionReason;
@@ -115,12 +119,12 @@ export class MockKycProvider implements IKycProvider {
       `Webhook processed: verification ${verificationId} -> ${String(status)}`,
     );
 
-    return {
+    return Promise.resolve({
       verificationId,
       userId: verification.userId,
       status: status as KycStatus,
       rejectionReason,
       metadata: { provider: 'mock' },
-    };
+    });
   }
 }
