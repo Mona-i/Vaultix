@@ -74,5 +74,5 @@ export interface IKycProvider {
    * Process a validated webhook payload into a standardized result.
    * @param payload - The webhook payload
    */
-  processWebhook(payload: any): Promise<KycWebhookResult>;
+  processWebhook(payload: unknown): Promise<KycWebhookResult>;
 }

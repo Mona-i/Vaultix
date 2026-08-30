@@ -168,7 +168,7 @@ export class KycService {
     });
 
     return {
-      status: user.kycStatus as KycStatus,
+      status: user.kycStatus,
       provider: latestVerification?.provider,
       initiatedAt: latestVerification?.initiatedAt,
       completedAt: latestVerification?.completedAt,
@@ -328,11 +328,12 @@ export class KycService {
       pages: number;
     };
   }> {
-    const where: any = {};
+    const where: { kycStatus?: KycStatus } = {};
     if (statusFilter) {
-      where.kycStatus = statusFilter;
+      where.kycStatus = statusFilter as KycStatus;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const [users, total] = await this.userRepository.findAndCount({
       where,
       skip: (page - 1) * limit,

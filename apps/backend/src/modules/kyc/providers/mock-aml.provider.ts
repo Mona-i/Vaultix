@@ -23,7 +23,7 @@ export class MockAmlProvider implements IAmlProvider {
     'GCVMR4EC3YX3MFMCJJ4ANE5CZA2NHXIMXIIFZNATWMGRY6DLUWAONWFL',
   ]);
 
-  async screenAddress(walletAddress: string): Promise<AmlScreeningResult> {
+  screenAddress(walletAddress: string): Promise<AmlScreeningResult> {
     const isFlagged = this.sanitizedAddresses.has(walletAddress);
 
     const result: AmlScreeningResult = isFlagged
@@ -45,7 +45,7 @@ export class MockAmlProvider implements IAmlProvider {
       `AML screening for ${walletAddress}: flagged=${result.flagged}, risk=${result.riskLevel}`,
     );
 
-    return result;
+    return Promise.resolve(result);
   }
 
   async screenAddresses(

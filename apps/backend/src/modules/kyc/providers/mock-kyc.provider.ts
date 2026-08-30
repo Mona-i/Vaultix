@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { Injectable, Logger } from '@nestjs/common';
 import {
   IKycProvider,
@@ -85,8 +87,13 @@ export class MockKycProvider implements IKycProvider {
     return true;
   }
 
-  async processWebhook(payload: any): Promise<KycWebhookResult> {
-    const { verificationId, status, rejectionReason } = payload;
+  async processWebhook(payload: unknown): Promise<KycWebhookResult> {
+    const p = payload as {
+      verificationId?: string;
+      status?: string;
+      rejectionReason?: string;
+    };
+    const { verificationId, status, rejectionReason } = p;
 
     if (!verificationId) {
       throw new Error('verificationId is required in webhook payload');
@@ -98,13 +105,14 @@ export class MockKycProvider implements IKycProvider {
     }
 
     // Update internal state
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     verification.status = status as KycStatus;
     if (rejectionReason) {
       verification.reason = rejectionReason;
     }
 
     this.logger.log(
-      `Webhook processed: verification ${verificationId} -> ${status}`,
+      `Webhook processed: verification ${verificationId} -> ${String(status)}`,
     );
 
     return {

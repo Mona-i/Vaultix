@@ -8,7 +8,6 @@ import {
 import { Request } from 'express';
 import { KycService } from '../services/kyc.service';
 import { ConfigService } from '@nestjs/config';
-import { KycStatus } from '../entities/kyc-verification.entity';
 
 /**
  * Guard that restricts access to users with verified KYC status.
@@ -55,8 +54,12 @@ export class KycGuard implements CanActivate {
 
     // Check if this is an escrow creation endpoint with an amount
     const body = request.body as Record<string, unknown> | undefined;
-    if (body?.amount) {
-      const amount = parseFloat(String(body.amount));
+    if (body?.amount !== undefined) {
+      const rawAmount = body.amount;
+      const amount =
+        typeof rawAmount === 'number'
+          ? rawAmount
+          : parseFloat(typeof rawAmount === 'string' ? rawAmount : '');
       if (Number.isNaN(amount) || amount < this.minEscrowAmount) {
         // Below threshold or invalid amount, skip KYC check
         return true;
